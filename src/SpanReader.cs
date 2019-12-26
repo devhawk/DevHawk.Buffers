@@ -8,33 +8,36 @@ namespace DevHawk.Buffers
 {
     public ref struct SpanReader<T> where T : unmanaged
     {
-        // private readonly ReadOnlySpan<T> span;
+        private bool usingSequence;
+        private readonly ReadOnlySpan<T> span;
         private readonly ReadOnlySequence<T> sequence;
         private SequencePosition currentPosition;
         private SequencePosition nextPosition;
         private bool moreData;
         private readonly long length;
 
-        // public SpanReader(ReadOnlySpan<T> span)
-        // {
-        //     this.span = span;
-        //     this.sequence = default;
+        public SpanReader(ReadOnlySpan<T> span)
+        {
+            usingSequence = false;
+            CurrentSpanIndex = 0;
+            Consumed = 0;
+            this.sequence = default;
+            this.span = span;
+            currentPosition = default;
+            length = span.Length;
 
-        //     this.CurrentSpanIndex = 0;
-        //     this.Consumed = 0;
-
-        //     CurrentSpan = span;
-        //     Length = span.Length;
-
-        //     this.currentPosition = default;
-        //     this.nextPosition = default; 
-        // }
+            CurrentSpan = span;
+            nextPosition = default;
+            moreData = span.Length > 0;
+        }
 
         public SpanReader(in ReadOnlySequence<T> sequence)
         {
+            usingSequence = true;
             CurrentSpanIndex = 0;
             Consumed = 0;
             this.sequence = sequence;
+            this.span = default;
             currentPosition = sequence.Start;
             length = -1;
 
@@ -48,7 +51,6 @@ namespace DevHawk.Buffers
                 moreData = true;
                 GetNextSpan();
             }
-
         }
 
         public readonly bool End => !moreData;
@@ -110,7 +112,14 @@ namespace DevHawk.Buffers
 
             if (CurrentSpanIndex >= CurrentSpan.Length)
             {
-                GetNextSpan();
+                if (usingSequence)
+                {
+                    GetNextSpan();
+                }
+                else
+                {
+                    moreData = false;
+                }
             }
 
             return true;
@@ -131,22 +140,28 @@ namespace DevHawk.Buffers
                 CurrentSpanIndex -= (int)count;
                 moreData = true;
             }
-            else
+            else if (usingSequence)
             {
                 // Current segment doesn't have enough data, scan backward through segments
                 RetreatToPreviousSpan(Consumed);
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException("Rewind went past the start of the memory.", nameof(count));
             }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void RetreatToPreviousSpan(long consumed)
         {
+            Debug.Assert(usingSequence, "usingSequence");
             ResetReader();
             Advance(consumed);
         }
 
         private void ResetReader()
         {
+            Debug.Assert(usingSequence, "usingSequence");
             CurrentSpanIndex = 0;
             Consumed = 0;
             currentPosition = sequence.Start;
@@ -177,6 +192,7 @@ namespace DevHawk.Buffers
 
         private void GetNextSpan()
         {
+            Debug.Assert(usingSequence, "usingSequence");
             if (!sequence.IsSingleSegment)
             {
                 SequencePosition previousNextPosition = nextPosition;
@@ -209,15 +225,26 @@ namespace DevHawk.Buffers
                 CurrentSpanIndex += (int)count;
                 Consumed += count;
             }
-            else
+            else if (usingSequence)
             {
                 // Can't satisfy from the current span
                 AdvanceToNextSpan(count);
+            }
+            else if (this.CurrentSpan.Length - this.CurrentSpanIndex == (int)count)
+            {
+                this.CurrentSpanIndex += (int)count;
+                this.Consumed += count;
+                this.moreData = false;
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
             }
         }
 
         private void AdvanceToNextSpan(long count)
         {
+            Debug.Assert(this.usingSequence, "usingSequence");
             if (count < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
@@ -277,6 +304,8 @@ namespace DevHawk.Buffers
 
         internal readonly bool TryCopyMultisegment(Span<T> destination)
         {
+            Debug.Assert(this.usingSequence, "usingSequence");
+
             // If we don't have enough to fill the requested buffer, return false
             if (Remaining < destination.Length)
                 return false;
