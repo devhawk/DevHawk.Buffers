@@ -2,9 +2,17 @@
 
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IncludeSymbols>true</IncludeSymbols>	
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
+    <PackageId>DevHawk.Buffers</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/devhawk/RIPEMD160</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <RepositoryUrl>https://github.com/devhawk/RIPEMD160</RepositoryUrl>
     <RootNamespace>DevHawk.Buffers</RootNamespace>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>	
     <TargetFramework>netstandard2.1</TargetFramework>
   </PropertyGroup>
 
