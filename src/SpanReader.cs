@@ -12,7 +12,7 @@ namespace DevHawk.Buffers
 {
     public ref struct SpanReader<T> where T : unmanaged
     {
-        private bool usingSequence;
+        private readonly bool usingSequence;
         private readonly ReadOnlySequence<T> sequence;
         private SequencePosition currentPosition;
         private SequencePosition nextPosition;
@@ -306,8 +306,6 @@ namespace DevHawk.Buffers
 
         internal readonly bool TryCopyMultisegment(Span<T> destination)
         {
-            Debug.Assert(this.usingSequence, "usingSequence");
-
             // If we don't have enough to fill the requested buffer, return false
             if (Remaining < destination.Length)
                 return false;
