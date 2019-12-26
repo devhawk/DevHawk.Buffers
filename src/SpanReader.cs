@@ -1,149 +1,247 @@
 ﻿using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace DevHawk.Buffers
 {
     public ref struct SpanReader<T> where T : unmanaged
     {
-        private readonly ReadOnlySpan<T> span;
+        // private readonly ReadOnlySpan<T> span;
         private readonly ReadOnlySequence<T> sequence;
         private SequencePosition currentPosition;
         private SequencePosition nextPosition;
+        private bool moreData;
+        private readonly long length;
 
-        public SpanReader(ReadOnlySpan<T> span)
+        // public SpanReader(ReadOnlySpan<T> span)
+        // {
+        //     this.span = span;
+        //     this.sequence = default;
+
+        //     this.CurrentSpanIndex = 0;
+        //     this.Consumed = 0;
+
+        //     CurrentSpan = span;
+        //     Length = span.Length;
+
+        //     this.currentPosition = default;
+        //     this.nextPosition = default; 
+        // }
+
+        public SpanReader(in ReadOnlySequence<T> sequence)
         {
-            this.span = span;
-            this.sequence = default;
-
-            this.CurrentSpanIndex = 0;
-            this.Consumed = 0;
-
-            CurrentSpan = span;
-            Length = span.Length;
-
-            this.currentPosition = default;
-            this.nextPosition = default; 
-        }
-
-        private SpanReader(in ReadOnlySequence<T> sequence)
-        {
-            Debug.Assert(!sequence.IsSingleSegment);
-
-            this.span = default;
+            CurrentSpanIndex = 0;
+            Consumed = 0;
             this.sequence = sequence;
+            currentPosition = sequence.Start;
+            length = -1;
 
-            this.CurrentSpanIndex = 0;
-            this.Consumed = 0;
+            var first = sequence.First.Span;
+            CurrentSpan = first;
+            nextPosition = sequence.GetPosition(first.Length);
+            moreData = first.Length > 0;
 
-            CurrentSpan = sequence.First.Span;
-            Length = sequence.Length;
+            if (!moreData && !sequence.IsSingleSegment)
+            {
+                moreData = true;
+                GetNextSpan();
+            }
 
-            this.currentPosition = sequence.Start;
-            this.nextPosition = sequence.GetPosition(CurrentSpan.Length); 
         }
 
-        public static SpanReader<T> Create(in ReadOnlySequence<T> sequence)
+        public readonly bool End => !moreData;
+
+        public ReadOnlySpan<T> CurrentSpan { readonly get; private set; }
+
+        public int CurrentSpanIndex { readonly get; private set; }
+
+        public readonly ReadOnlySpan<T> UnreadSpan
         {
-            return sequence.IsSingleSegment
-                ? new SpanReader<T>(sequence.FirstSpan)
-                : new SpanReader<T>(sequence);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => CurrentSpan.Slice(CurrentSpanIndex);
         }
 
-        public bool End => Consumed >= Length;
+        public long Consumed { readonly get; private set; }
 
-        public ReadOnlySpan<T> CurrentSpan { get; private set; }
+        public readonly long Remaining => Length - Consumed;
 
-        public int CurrentSpanIndex { get; private set; }
+        public readonly long Length
+        {
+            get
+            {
+                if (length < 0)
+                {
+                    // Cast-away readonly to initialize lazy field
+                    Volatile.Write(ref Unsafe.AsRef(length), sequence.Length);
+                }
+                return length;
+            }
+        }
 
-        public ReadOnlySpan<T> UnreadSpan => CurrentSpan.Slice(CurrentSpanIndex);
-
-        public long Consumed { get; private set; }
-
-        public long Remaining => this.Length - this.Consumed;
-
-        public long Length { get; private set; }
-
-        public bool TryPeek(out T value)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryPeek(out T value)
+        {
+            if (moreData)
+            {
+                value = CurrentSpan[CurrentSpanIndex];
+                return true;
+            }
+            else
+            {
+                value = default;
+                return false;
+            }
+        }
+ 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryRead(out T value)
         {
             if (End)
             {
                 value = default;
                 return false;
             }
+
+            value = CurrentSpan[CurrentSpanIndex];
+            CurrentSpanIndex++;
+            Consumed++;
+
+            if (CurrentSpanIndex >= CurrentSpan.Length)
+            {
+                GetNextSpan();
+            }
+
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Rewind(long count)
+        {
+            if ((ulong)count > (ulong)Consumed)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+
+            Consumed -= count;
+
+            if (CurrentSpanIndex >= count)
+            {
+                CurrentSpanIndex -= (int)count;
+                moreData = true;
+            }
             else
             {
-                value = CurrentSpan[CurrentSpanIndex];
-                return true;
+                // Current segment doesn't have enough data, scan backward through segments
+                RetreatToPreviousSpan(Consumed);
             }
         }
- 
-        public bool TryRead(out T value)
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void RetreatToPreviousSpan(long consumed)
         {
-            if (TryPeek(out value))
-            {
-                Advance(1);
-                return true;
-            }
-
-            return false;
+            ResetReader();
+            Advance(consumed);
         }
 
-        // public void Rewind(long count)
-        // {
-        //     throw new NotImplementedException();
-        // }
+        private void ResetReader()
+        {
+            CurrentSpanIndex = 0;
+            Consumed = 0;
+            currentPosition = sequence.Start;
+            nextPosition = currentPosition;
 
+            if (sequence.TryGet(ref nextPosition, out ReadOnlyMemory<T> memory, advance: true))
+            {
+                moreData = true;
+
+                if (memory.Length == 0)
+                {
+                    CurrentSpan = default;
+                    // No data in the first span, move to one with data
+                    GetNextSpan();
+                }
+                else
+                {
+                    CurrentSpan = memory.Span;
+                }
+            }
+            else
+            {
+                // No data in any spans and at end of sequence
+                moreData = false;
+                CurrentSpan = default;
+            }
+        }
+
+        private void GetNextSpan()
+        {
+            if (!sequence.IsSingleSegment)
+            {
+                SequencePosition previousNextPosition = nextPosition;
+                while (sequence.TryGet(ref nextPosition, out ReadOnlyMemory<T> memory, advance: true))
+                {
+                    currentPosition = previousNextPosition;
+                    if (memory.Length > 0)
+                    {
+                        CurrentSpan = memory.Span;
+                        CurrentSpanIndex = 0;
+                        return;
+                    }
+                    else
+                    {
+                        CurrentSpan = default;
+                        CurrentSpanIndex = 0;
+                        previousNextPosition = nextPosition;
+                    }
+                }
+            }
+            moreData = false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Advance(long count)
         {
             const long TooBigOrNegative = unchecked((long)0xFFFFFFFF80000000);
-            if ((count & TooBigOrNegative) == 0 && this.CurrentSpan.Length - this.CurrentSpanIndex > (int)count)
+            if ((count & TooBigOrNegative) == 0 && CurrentSpan.Length - CurrentSpanIndex > (int)count)
             {
-                this.CurrentSpanIndex += (int)count;
-                this.Consumed += count;
-            }
-            else if (!this.sequence.IsEmpty)
-            {
-                AdvanceToNextSpan(count);
-            }
-            else if (this.CurrentSpan.Length - this.CurrentSpanIndex == (int)count)
-            {
-                this.CurrentSpanIndex += (int)count;
-                this.Consumed += count;
+                CurrentSpanIndex += (int)count;
+                Consumed += count;
             }
             else
             {
-                throw new ArgumentOutOfRangeException(nameof(count));
+                // Can't satisfy from the current span
+                AdvanceToNextSpan(count);
             }
         }
 
         private void AdvanceToNextSpan(long count)
         {
-            Debug.Assert(this.span == default);
             if (count < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
 
-            this.Consumed += count;
-            while (!this.End)
+            Consumed += count;
+            while (moreData)
             {
-                int remaining = this.CurrentSpan.Length - this.CurrentSpanIndex;
+                int remaining = CurrentSpan.Length - CurrentSpanIndex;
 
                 if (remaining > count)
                 {
-                    this.CurrentSpanIndex += (int)count;
+                    CurrentSpanIndex += (int)count;
                     count = 0;
                     break;
                 }
 
                 // As there may not be any further segments we need to
                 // push the current index to the end of the span.
-                this.CurrentSpanIndex += remaining;
+                CurrentSpanIndex += remaining;
                 count -= remaining;
-                Debug.Assert(count >= 0, "count >= 0");
+                Debug.Assert(count >= 0);
 
-                this.GetNextSpan();
+                GetNextSpan();
 
                 if (count == 0)
                 {
@@ -154,74 +252,41 @@ namespace DevHawk.Buffers
             if (count != 0)
             {
                 // Not enough data left- adjust for where we actually ended and throw
-                this.Consumed -= count;
+                Consumed -= count;
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
         }
 
-        private void GetNextSpan()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryCopyTo(Span<T> destination)
         {
-            Debug.Assert(this.span == default);
-            if (!this.sequence.IsSingleSegment)
-            {
-                SequencePosition previousNextPosition = this.nextPosition;
-                while (this.sequence.TryGet(ref this.nextPosition, out ReadOnlyMemory<T> memory, advance: true))
-                {
-                    this.currentPosition = previousNextPosition;
-                    if (memory.Length > 0)
-                    {
-                        this.CurrentSpan = memory.Span;
-                        this.CurrentSpanIndex = 0;
-                        return;
-                    }
-                    else
-                    {
-                        this.CurrentSpan = default;
-                        this.CurrentSpanIndex = 0;
-                        previousNextPosition = this.nextPosition;
-                    }
-                }
-            }
-        }
+            // This API doesn't advance to facilitate conditional advancement based on the data returned.
+            // We don't provide an advance option to allow easier utilizing of stack allocated destination spans.
+            // (Because we can make this method readonly we can guarantee that we won't capture the span.)
 
-        public bool TryAdvance(long count)
-        {
-            if (this.Remaining < count)
+            ReadOnlySpan<T> firstSpan = UnreadSpan;
+            if (firstSpan.Length >= destination.Length)
             {
-                return false;
-            }
-
-            this.Advance(count);
-            return true;
-        }
-
-        public bool TryCopyTo(Span<T> destination)
-        {
-            var unreadSpan = this.UnreadSpan; 
-            if (unreadSpan.Length >= destination.Length)
-            {
-                unreadSpan
-                    .Slice(0, destination.Length)
-                    .CopyTo(destination);
+                firstSpan.Slice(0, destination.Length).CopyTo(destination);
                 return true;
             }
 
+            // Not enough in the current span to satisfy the request, fall through to the slow path
             return TryCopyMultisegment(destination);
         }
 
-        private bool TryCopyMultisegment(Span<T> destination)
+        internal readonly bool TryCopyMultisegment(Span<T> destination)
         {
+            // If we don't have enough to fill the requested buffer, return false
             if (Remaining < destination.Length)
-            {
                 return false;
-            }
 
-            var unreadSpan = this.UnreadSpan; 
-            Debug.Assert(unreadSpan.Length < destination.Length);
-            unreadSpan.CopyTo(destination);
-            int copied = unreadSpan.Length;
+            ReadOnlySpan<T> firstSpan = UnreadSpan;
+            Debug.Assert(firstSpan.Length < destination.Length);
+            firstSpan.CopyTo(destination);
+            int copied = firstSpan.Length;
 
-            SequencePosition next = this.nextPosition;
+            SequencePosition next = nextPosition;
             while (sequence.TryGet(ref next, out ReadOnlyMemory<T> nextSegment, true))
             {
                 if (nextSegment.Length > 0)
