@@ -50,7 +50,7 @@ namespace DevHawk.Buffers
                 : new SpanReader<T>(sequence);
         }
 
-        public bool End => Length > Consumed;
+        public bool End => Consumed >= Length;
 
         public ReadOnlySpan<T> CurrentSpan { get; private set; }
 
@@ -119,7 +119,7 @@ namespace DevHawk.Buffers
 
         private void AdvanceToNextSpan(long count)
         {
-            // Debug.Assert(this.usingSequence, "usingSequence");
+            Debug.Assert(this.span == default);
             if (count < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
@@ -161,7 +161,7 @@ namespace DevHawk.Buffers
 
         private void GetNextSpan()
         {
-            // Debug.Assert(this.usingSequence, "usingSequence");
+            Debug.Assert(this.span == default);
             if (!this.sequence.IsSingleSegment)
             {
                 SequencePosition previousNextPosition = this.nextPosition;
@@ -182,8 +182,6 @@ namespace DevHawk.Buffers
                     }
                 }
             }
-
-            // this.moreData = false;
         }
 
         public bool TryAdvance(long count)
