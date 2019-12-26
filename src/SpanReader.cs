@@ -9,7 +9,6 @@ namespace DevHawk.Buffers
     public ref struct SpanReader<T> where T : unmanaged
     {
         private bool usingSequence;
-        private readonly ReadOnlySpan<T> span;
         private readonly ReadOnlySequence<T> sequence;
         private SequencePosition currentPosition;
         private SequencePosition nextPosition;
@@ -22,7 +21,6 @@ namespace DevHawk.Buffers
             CurrentSpanIndex = 0;
             Consumed = 0;
             this.sequence = default;
-            this.span = span;
             currentPosition = default;
             length = span.Length;
 
@@ -37,7 +35,6 @@ namespace DevHawk.Buffers
             CurrentSpanIndex = 0;
             Consumed = 0;
             this.sequence = sequence;
-            this.span = default;
             currentPosition = sequence.Start;
             length = -1;
 
@@ -75,6 +72,7 @@ namespace DevHawk.Buffers
             {
                 if (length < 0)
                 {
+                    Debug.Assert(usingSequence, "usingSequence");
                     // Cast-away readonly to initialize lazy field
                     Volatile.Write(ref Unsafe.AsRef(length), sequence.Length);
                 }
