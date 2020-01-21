@@ -12,7 +12,7 @@ namespace DevHawk.Buffers
 {
     public static class SpanReaderExtensions
     {
-        public static unsafe bool TryRead<T>(ref this SpanReader<byte> reader, out T value)
+        private static unsafe bool TryRead<T>(ref this SpanReader<byte> reader, out T value)
             where T : unmanaged
         {
             ReadOnlySpan<byte> span = reader.UnreadSpan;
@@ -58,6 +58,16 @@ namespace DevHawk.Buffers
             return false;
         }
 
+        public static bool TryReadLittleEndian(ref this SpanReader<byte> reader, out short value)
+        {
+            if (BitConverter.IsLittleEndian)
+            {
+                return reader.TryRead(out value);
+            }
+
+            return TryReadReverseEndianness(ref reader, out value);
+        }
+
         public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out short value)
         {
             if (!BitConverter.IsLittleEndian)
@@ -66,18 +76,6 @@ namespace DevHawk.Buffers
             }
 
             return TryReadReverseEndianness(ref reader, out value);
-        }
-
-        public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out ushort value)
-        {
-            if (TryReadBigEndian(ref reader, out short shortValue))
-            {
-                value = unchecked((ushort)shortValue);
-                return true;
-            }
-
-            value = default;
-            return false;
         }
 
         private static bool TryReadReverseEndianness(ref SpanReader<byte> reader, out short value)
@@ -91,6 +89,40 @@ namespace DevHawk.Buffers
             return false;
         }
 
+        public static bool TryReadLittleEndian(ref this SpanReader<byte> reader, out ushort value)
+        {
+            if (TryReadLittleEndian(ref reader, out short signedvalue))
+            {
+                value = unchecked((ushort)signedvalue);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out ushort value)
+        {
+            if (TryReadBigEndian(ref reader, out short signedvalue))
+            {
+                value = unchecked((ushort)signedvalue);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public static bool TryReadLittleEndian(ref this SpanReader<byte> reader, out int value)
+        {
+            if (BitConverter.IsLittleEndian)
+            {
+                return reader.TryRead(out value);
+            }
+
+            return TryReadReverseEndianness(ref reader, out value);
+        }
+
         public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out int value)
         {
             if (!BitConverter.IsLittleEndian)
@@ -99,18 +131,6 @@ namespace DevHawk.Buffers
             }
 
             return TryReadReverseEndianness(ref reader, out value);
-        }
-
-        public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out uint value)
-        {
-            if (TryReadBigEndian(ref reader, out int intValue))
-            {
-                value = unchecked((uint)intValue);
-                return true;
-            }
-
-            value = default;
-            return false;
         }
 
         private static bool TryReadReverseEndianness(ref SpanReader<byte> reader, out int value)
@@ -124,6 +144,40 @@ namespace DevHawk.Buffers
             return false;
         }
 
+        public static bool TryReadLittleEndian(ref this SpanReader<byte> reader, out uint value)
+        {
+            if (TryReadLittleEndian(ref reader, out int signedvalue))
+            {
+                value = unchecked((uint)signedvalue);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out uint value)
+        {
+            if (TryReadBigEndian(ref reader, out int signedvalue))
+            {
+                value = unchecked((uint)signedvalue);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        public static bool TryReadLittleEndian(ref this SpanReader<byte> reader, out long value)
+        {
+            if (BitConverter.IsLittleEndian)
+            {
+                return reader.TryRead(out value);
+            }
+
+            return TryReadReverseEndianness(ref reader, out value);
+        }
+
         public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out long value)
         {
             if (!BitConverter.IsLittleEndian)
@@ -132,18 +186,6 @@ namespace DevHawk.Buffers
             }
 
             return TryReadReverseEndianness(ref reader, out value);
-        }
-
-        public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out ulong value)
-        {
-            if (TryReadBigEndian(ref reader, out long longValue))
-            {
-                value = unchecked((ulong)longValue);
-                return true;
-            }
-
-            value = default;
-            return false;
         }
 
         private static bool TryReadReverseEndianness(ref SpanReader<byte> reader, out long value)
@@ -157,11 +199,12 @@ namespace DevHawk.Buffers
             return false;
         }
 
-        public static unsafe bool TryReadBigEndian(ref this SpanReader<byte> reader, out float value)
+        
+        public static bool TryReadLittleEndian(ref this SpanReader<byte> reader, out ulong value)
         {
-            if (TryReadBigEndian(ref reader, out int intValue))
+            if (TryReadLittleEndian(ref reader, out long signedvalue))
             {
-                value = *(float*)&intValue;
+                value = unchecked((ulong)signedvalue);
                 return true;
             }
 
@@ -169,11 +212,11 @@ namespace DevHawk.Buffers
             return false;
         }
 
-        public static unsafe bool TryReadBigEndian(ref this SpanReader<byte> reader, out double value)
+        public static bool TryReadBigEndian(ref this SpanReader<byte> reader, out ulong value)
         {
-            if (TryReadBigEndian(ref reader, out long longValue))
+            if (TryReadBigEndian(ref reader, out long signedvalue))
             {
-                value = *(double*)&longValue;
+                value = unchecked((ulong)signedvalue);
                 return true;
             }
 
