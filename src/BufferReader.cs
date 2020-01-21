@@ -6,11 +6,12 @@ using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace DevHawk.Buffers
 {
-    public ref struct SpanReader<T> where T : unmanaged
+    public ref struct BufferReader<T> where T : unmanaged
     {
         private readonly bool usingSequence;
         private readonly ReadOnlySequence<T> sequence;
@@ -19,12 +20,12 @@ namespace DevHawk.Buffers
         private bool moreData;
         private readonly long length;
 
-        public SpanReader(ReadOnlySpan<T> span)
+        public BufferReader(ReadOnlySpan<T> span)
         {
             usingSequence = false;
             CurrentSpanIndex = 0;
             Consumed = 0;
-            this.sequence = default;
+            sequence = default;
             currentPosition = default;
             length = span.Length;
 
@@ -33,7 +34,7 @@ namespace DevHawk.Buffers
             moreData = span.Length > 0;
         }
 
-        public SpanReader(in ReadOnlySequence<T> sequence)
+        public BufferReader(in ReadOnlySequence<T> sequence)
         {
             usingSequence = true;
             CurrentSpanIndex = 0;

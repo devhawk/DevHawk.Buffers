@@ -7,13 +7,13 @@ using System.Buffers;
 
 namespace DevHawk.BuffersTest
 {
-    public class UnitTest1
+    public class BufferReaderTests
     {
         [Fact]
         public void Test1()
         {
             Span<byte> span = new byte[] {0,1,2,3,4,5,6,7,8,9};
-            var reader = new SpanReader<byte>(span);
+            var reader = new BufferReader<byte>(span);
 
             reader.TryPeek(out var actual).Should().BeTrue();
             actual.Should().Be((byte)0);
@@ -23,7 +23,7 @@ namespace DevHawk.BuffersTest
         public void Test2()
         {
             Span<byte> span = new byte[] {0,1,2,3,4,5,6,7,8,9};
-            var reader = new SpanReader<byte>(span);
+            var reader = new BufferReader<byte>(span);
 
             for (byte expected = 0; expected < 10; expected++)
             {
@@ -38,7 +38,7 @@ namespace DevHawk.BuffersTest
         public void Test3()
         {
             Span<byte> span = new byte[] {0,1,2,3,4,5,6,7,8,9};
-            var reader = new SpanReader<byte>(span);
+            var reader = new BufferReader<byte>(span);
 
             for (byte expected = 0; expected < 10; expected++)
             {
@@ -76,7 +76,7 @@ namespace DevHawk.BuffersTest
         public void Test4()
         {
             var ros = GetTestReadOnlySequence();
-            var reader = new SpanReader<byte>(ros);
+            var reader = new BufferReader<byte>(ros);
 
             for (byte expected = 0; expected < 10; expected++)
             {
@@ -91,7 +91,7 @@ namespace DevHawk.BuffersTest
             Span<byte> expected = new byte[] {0,1,2,3,4,5,6,7,8,9};
 
             var ros = GetTestReadOnlySequence();
-            var reader = new SpanReader<byte>(ros);
+            var reader = new BufferReader<byte>(ros);
 
             Span<byte> actual = new byte[10];
             reader.TryCopyTo(actual).Should().BeTrue();
@@ -103,7 +103,7 @@ namespace DevHawk.BuffersTest
         public void Test6()
         {
             Span<byte> span = new byte[] {0,1,2,3,4,5,6,7,8,9};
-            var reader = new SpanReader<byte>(span);
+            var reader = new BufferReader<byte>(span);
 
             Span<byte> expected = new byte[] {0,1,2,3,4,5,6,7,8,9};
 
