@@ -98,7 +98,7 @@ namespace DevHawk.Buffers
                 return false;
             }
         }
- 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryRead(out T value)
         {

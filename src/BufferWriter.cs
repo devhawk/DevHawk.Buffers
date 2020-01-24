@@ -43,7 +43,7 @@ namespace DevHawk.Buffers
                 UnderlyingWriter.Advance(temp);
             }
         }
-        
+
         public void Advance(int count)
         {
             buffered += count;

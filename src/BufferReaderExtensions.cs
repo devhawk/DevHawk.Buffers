@@ -199,7 +199,7 @@ namespace DevHawk.Buffers
             return false;
         }
 
-        
+
         public static bool TryReadLittleEndian(ref this BufferReader<byte> reader, out ulong value)
         {
             if (TryReadLittleEndian(ref reader, out long signedvalue))
