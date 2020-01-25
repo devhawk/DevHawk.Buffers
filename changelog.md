@@ -13,6 +13,14 @@ will not have contiguous patch numbers. Initial major and minor releases will be
 in this file without a patch number. Patch version will be included for bug fix releases, but
 may not exactly match a publicly released version.
 
-## [1.0] - Unreleased
+## [1.1] - Unreleased
+
+### Added
+
+- `MemoryPoolBufferWriter<T>`, an
+  [`IBufferWriter<T>`](https://docs.microsoft.com/en-us/dotnet/api/system.buffers.ibufferwriter-1)
+  implementation using buffers allocated from [`MemoryPool<T>`](https://docs.microsoft.com/en-us/dotnet/api/system.buffers.memorypool-1).
+
+## [1.0] - 2020-01-25
 
 Initial Public Release
