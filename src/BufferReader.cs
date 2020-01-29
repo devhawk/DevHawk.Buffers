@@ -5,12 +5,13 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace DevHawk.Buffers
 {
-    public ref struct BufferReader<T> where T : unmanaged
+    public ref struct BufferReader<T>
     {
         private readonly bool usingSequence;
         private readonly ReadOnlySequence<T> sequence;
@@ -85,7 +86,7 @@ namespace DevHawk.Buffers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool TryPeek(out T value)
+        public readonly bool TryPeek([MaybeNullWhen(false)] out T value)
         {
             if (moreData)
             {
@@ -94,17 +95,17 @@ namespace DevHawk.Buffers
             }
             else
             {
-                value = default;
+                value = default!;
                 return false;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryRead(out T value)
+        public bool TryRead([MaybeNullWhen(false)] out T value)
         {
             if (End)
             {
-                value = default;
+                value = default!;
                 return false;
             }
 
