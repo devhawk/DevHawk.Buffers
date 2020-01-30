@@ -9,7 +9,7 @@ namespace DevHawk.Buffers
 {
     public ref struct BufferWriter<T>
     {
-        public IBufferWriter<T> UnderlyingWriter { get; }
+        public IBufferWriter<T>? UnderlyingWriter { get; }
         public Span<T> Span { get; private set; }
         public int BytesCommitted { get; private set; }
         private int buffered;
@@ -33,9 +33,17 @@ namespace DevHawk.Buffers
             Span = GetMemoryCheckResult(output).Span;
         }
 
+        public BufferWriter(Span<T> span)
+        {
+            UnderlyingWriter = null;
+            buffered = 0;
+            BytesCommitted = 0;
+            Span = span;
+        }
+
         public void Commit()
         {
-            if (buffered > 0)
+            if (UnderlyingWriter != null && buffered > 0)
             {
                 var temp = buffered;
                 BytesCommitted += temp;
@@ -46,6 +54,8 @@ namespace DevHawk.Buffers
 
         public void Advance(int count)
         {
+            if (count > Span.Length) throw new InvalidOperationException();
+
             buffered += count;
             Span = Span.Slice(count);
             Ensure();
@@ -66,6 +76,8 @@ namespace DevHawk.Buffers
 
         private void WriteMultiBuffer(ReadOnlySpan<T> source)
         {
+            if (UnderlyingWriter == null) throw new InvalidOperationException();
+
             int copiedBytes = 0;
             int bytesLeftToCopy = source.Length;
             while (bytesLeftToCopy > 0)
@@ -85,7 +97,7 @@ namespace DevHawk.Buffers
 
         public void Ensure(int count = 0)
         {
-            if (Span.Length < count || Span.Length == 0)
+            if (UnderlyingWriter != null && (Span.Length < count || Span.Length == 0))
             {
                 EnsureMore(count);
             }
@@ -93,6 +105,8 @@ namespace DevHawk.Buffers
 
         private void EnsureMore(int count = 0)
         {
+            if (UnderlyingWriter == null) throw new InvalidOperationException();
+
             if (buffered > 0)
             {
                 Commit();
