@@ -7,7 +7,7 @@ using System.Buffers;
 
 namespace DevHawk.Buffers
 {
-    public ref struct BufferWriter<T> where T : unmanaged
+    public ref struct BufferWriter<T>
     {
         public IBufferWriter<T> UnderlyingWriter { get; }
         public Span<T> Span { get; private set; }
