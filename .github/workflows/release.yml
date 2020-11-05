@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  release:
+  
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+
+    - name: Install nbgv
+      run: dotnet tool install nbgv --tool-path ./tools --version 3.3.37
+    - name: Run nbgv
+      run: echo "NUGET_PACKAGE_VERSION=$(./tools/nbgv get-version -v NuGetPackageVersion)" >> $GITHUB_ENV
+      
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Pack 
+      run: dotnet pack --output ./out --configuration Release --no-build --verbosity normal
+
+    - name: Upload nupkg Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        FILE_NAME: ${{ "DevHawk.Buffers." + env.NUGET_PACKAGE_VERSION + ".nupkg" }}
+      with:
+        upload_url: ${{ github.event.upload_url }}
+        asset_path: ${{ "./out/" + env.FILE_NAME }}
+        asset_name: ${{ env.FILE_NAME }}
+        asset_content_type: application/zip
+
+    - name: Upload snupkg Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        FILE_NAME: ${{ "DevHawk.Buffers." + env.NUGET_PACKAGE_VERSION + ".snupkg" }}
+      with:
+        upload_url: ${{ github.event.upload_url }}
+        asset_path: ${{ "./out/" + env.FILE_NAME }}
+        asset_name: ${{ env.FILE_NAME }}
+        asset_content_type: application/zip        
