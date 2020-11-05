@@ -1,8 +1,7 @@
 name: Release
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -26,13 +25,24 @@ jobs:
     - name: Pack 
       run: dotnet pack --output ./out --configuration Release --no-restore --verbosity normal
 
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.NUGET_PACKAGE_VERSION }}
+        release_name: Release ${{ env.NUGET_PACKAGE_VERSION }}
+        draft: false
+        prerelease: false
+
     - name: Upload nupkg Release Asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         FILE_NAME: DevHawk.Buffers.${{ env.NUGET_PACKAGE_VERSION }}.nupkg
       with:
-        upload_url: ${{ github.event.release.upload_url }}
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./out/${{ env.FILE_NAME }}
         asset_name: ${{ env.FILE_NAME }}
         asset_content_type: application/zip
@@ -43,7 +53,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         FILE_NAME: DevHawk.Buffers.${{ env.NUGET_PACKAGE_VERSION }}.snupkg
       with:
-        upload_url: ${{ github.event.release.upload_url }}
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./out/${{ env.FILE_NAME }}
         asset_name: ${{ env.FILE_NAME }}
         asset_content_type: application/zip
