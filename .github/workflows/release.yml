@@ -25,10 +25,6 @@ jobs:
       run: dotnet restore
     - name: Pack 
       run: dotnet pack --output ./out --configuration Release --no-restore --verbosity normal
-    - name: Dump GitHub context
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: echo "$GITHUB_CONTEXT"
 
     - name: Upload nupkg Release Asset
       uses: actions/upload-release-asset@v1
@@ -36,7 +32,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         FILE_NAME: "DevHawk.Buffers.$NUGET_PACKAGE_VERSION.nupkg"
       with:
-        upload_url: ${{ github.event.upload_url }}
+        upload_url: ${{ github.event.release.upload_url }}
         asset_path: "./out/$FILE_NAME"
         asset_name: $FILE_NAME
         asset_content_type: application/zip
@@ -47,7 +43,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         FILE_NAME: "DevHawk.Buffers.$NUGET_PACKAGE_VERSION.snupkg"
       with:
-        upload_url: ${{ github.event.upload_url }}
+        upload_url: ${{ github.event.release.upload_url }}
         asset_path: "./out/$FILE_NAME"
         asset_name: $FILE_NAME
         asset_content_type: application/zip
