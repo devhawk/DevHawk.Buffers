@@ -21,6 +21,15 @@ jobs:
         fetch-depth: 0
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
+
+    - name: Install nbgv
+      run: dotnet tool install nbgv --tool-path ./tools --version 3.3.37
+    - name: Run nbgv
+      id: run-nbgv
+      run: echo "::set-output name=NUGET_PACKAGE_VERSION::$(./tools/nbgv get-version -v NuGetPackageVersion)"
+    - name: get version
+      run: echo "The selected version is ${{ steps.run-nbgv.outputs.NUGET_PACKAGE_VERSION }}"
+      
     - name: Install dependencies
       run: dotnet restore
     - name: Build
