@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Pack 
-      run: dotnet pack --output ./out --configuration Release --no-build --verbosity normal
+      run: dotnet pack --output ./out --configuration Release --no-restore --verbosity normal
 
     - name: Upload nupkg Release Asset
       uses: actions/upload-release-asset@v1
