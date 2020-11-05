@@ -30,20 +30,20 @@ jobs:
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        FILE_NAME: "DevHawk.Buffers.$NUGET_PACKAGE_VERSION.nupkg"
+        FILE_NAME: DevHawk.Buffers.${{ env.NUGET_PACKAGE_VERSION }}.nupkg
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: "./out/$FILE_NAME"
-        asset_name: "$FILE_NAME"
+        asset_path: ./out/${{ env.FILE_NAME }}
+        asset_name: ${{ env.FILE_NAME }}
         asset_content_type: application/zip
 
     - name: Upload snupkg Release Asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        FILE_NAME: "DevHawk.Buffers.$NUGET_PACKAGE_VERSION.snupkg"
+        FILE_NAME: DevHawk.Buffers.${{ env.NUGET_PACKAGE_VERSION }}.snupkg
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: "./out/$FILE_NAME"
-        asset_name: "$FILE_NAME"
+        asset_path: ./out/${{ env.FILE_NAME }}
+        asset_name: ${{ env.FILE_NAME }}
         asset_content_type: application/zip
