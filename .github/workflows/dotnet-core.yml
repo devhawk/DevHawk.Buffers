@@ -24,7 +24,7 @@ jobs:
       with:
         source-url: https://devhawk.pkgs.visualstudio.com/Public/_packaging/DevHawkPackages/nuget/v3/index.json
       env:
-        NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_PAT }}
+        NUGET_AUTH_TOKEN: ${{ secrets.AZURE_ARTIFACTS_PAT }}
 
     - name: Install dependencies
       run: dotnet restore
