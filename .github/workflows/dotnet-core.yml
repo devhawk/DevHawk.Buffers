@@ -21,13 +21,10 @@ jobs:
         fetch-depth: 0
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
-
-    - name: Install nbgv
-      run: dotnet tool install nbgv --tool-path ./tools --version 3.3.37
-    - name: Run nbgv
-      run: echo "NUGET_PACKAGE_VERSION=$(./tools/nbgv get-version -v NuGetPackageVersion)" >> $GITHUB_ENV
-    - name: echo version
-      run: echo "The selected version is $NUGET_PACKAGE_VERSION"
+      with:
+        source-url: https://devhawk.pkgs.visualstudio.com/Public/_packaging/DevHawkPackages/nuget/v3/index.json
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_PAT }}
 
     - name: Install dependencies
       run: dotnet restore
@@ -44,6 +41,8 @@ jobs:
       run: dotnet test --no-restore --verbosity normal
     - name: Publish package
       if: ${{ github.event_name == 'push' }}
-      run: dotnet nuget push ./out/DevHawk.Buffers.*.nupkg --api-key ${GITHUB_TOKEN} --source https://nuget.pkg.github.com/devhawk/index.json --skip-duplicate --no-symbols true
+      run: |
+        dotnet nuget push ./out/DevHawk.Buffers.*.nupkg --api-key ${GITHUB_TOKEN} --source https://nuget.pkg.github.com/devhawk/index.json --skip-duplicate --no-symbols true
+        dotnet nuget push ./out/DevHawk.Buffers.*.nupkg 
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
