@@ -42,7 +42,7 @@ jobs:
     - name: Publish package
       if: ${{ github.event_name == 'push' }}
       run: |
-        dotnet nuget push ./out/DevHawk.Buffers.*.nupkg --api-key ${GITHUB_TOKEN} --source https://nuget.pkg.github.com/devhawk/index.json --skip-duplicate --no-symbols true
+        dotnet nuget push ./out/DevHawk.Buffers.*.nupkg --api-key ${GITHUB_TOKEN} --source https://nuget.pkg.github.com/devhawk/index.json
         dotnet nuget push ./out/DevHawk.Buffers.*.nupkg --api-key AzureDevOps
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

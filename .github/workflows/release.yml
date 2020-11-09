@@ -57,3 +57,9 @@ jobs:
         asset_path: ./out/${{ env.FILE_NAME }}
         asset_name: ${{ env.FILE_NAME }}
         asset_content_type: application/zip
+
+    - name: Publish package
+      run: |
+        dotnet nuget push ./out/DevHawk.Buffers.*.nupkg --api-key ${NUGET_ORG_API_KEY}
+      env:
+        NUGET_ORG_API_KEY: ${{ secrets.NUGET_ORG_API_KEY }}
