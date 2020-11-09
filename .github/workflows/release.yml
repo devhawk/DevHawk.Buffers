@@ -60,6 +60,6 @@ jobs:
 
     - name: Publish package
       run: |
-        dotnet nuget push ./out/DevHawk.Buffers.*.nupkg --api-key ${NUGET_ORG_API_KEY}
+        dotnet nuget push ./out/DevHawk.Buffers.*.nupkg --api-key ${NUGET_ORG_API_KEY} --source https://api.nuget.org/v3/index.json
       env:
         NUGET_ORG_API_KEY: ${{ secrets.NUGET_ORG_API_KEY }}
