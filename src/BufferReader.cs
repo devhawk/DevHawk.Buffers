@@ -34,6 +34,8 @@ namespace DevHawk.Buffers
             moreData = span.Length > 0;
         }
 
+        public static BufferReader<TT> Create<TT>(ReadOnlySpan<TT> span) => new BufferReader<TT>(span);
+
         public BufferReader(in ReadOnlySequence<T> sequence)
         {
             usingSequence = true;
@@ -54,6 +56,8 @@ namespace DevHawk.Buffers
                 GetNextSpan();
             }
         }
+
+        public static BufferReader<TT> Create<TT>(in ReadOnlySequence<TT> sequence) => new BufferReader<TT>(sequence);
 
         public readonly bool End => !moreData;
 

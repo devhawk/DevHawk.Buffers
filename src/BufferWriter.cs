@@ -33,6 +33,8 @@ namespace DevHawk.Buffers
             Span = GetMemoryCheckResult(output).Span;
         }
 
+        public static BufferWriter<TT> Create<TT>(IBufferWriter<TT> output) => new BufferWriter<TT>(output);
+
         public BufferWriter(Span<T> span)
         {
             UnderlyingWriter = null;
@@ -40,6 +42,8 @@ namespace DevHawk.Buffers
             BytesCommitted = 0;
             Span = span;
         }
+
+        public static BufferWriter<TT> Create<TT>(Span<TT> span) => new BufferWriter<TT>(span);
 
         public void Commit()
         {
